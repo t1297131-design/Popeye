@@ -4,8 +4,10 @@ var builder =
     WebApplication.CreateBuilder(args);
 
 
+// One CommandRunner per HTTP request.
+// This allows separate requests to run commands concurrently.
 builder.Services
-    .AddSingleton<CommandRunner>();
+    .AddScoped<CommandRunner>();
 
 var app =
     builder.Build();
@@ -104,11 +106,17 @@ app.MapPost(
                     context.RequestAborted);
 
 
+        // Start the command on a ThreadPool thread.
+        // Because CommandRunner is scoped, another request
+        // receives its own CommandRunner and can execute
+        // at the same time.
         var commandOutput =
-            runner.TryRun(
-                "run",
-                menu,
-                food,
+            await Task.Run(
+                () => runner.TryRun(
+                    "run",
+                    menu,
+                    food,
+                    cancellation.Token),
                 cancellation.Token);
 
 
@@ -118,7 +126,7 @@ app.MapPost(
                 StatusCodes.Status409Conflict;
 
             await context.Response.WriteAsync(
-                "A command is already running.",
+                "Unable to start command.",
                 context.RequestAborted);
 
             return;
@@ -151,7 +159,6 @@ app.MapPost(
                         text,
                         context.RequestAborted);
 
-
                 await context.Response.Body
                     .FlushAsync(
                         context.RequestAborted);
@@ -171,13 +178,18 @@ app.MapPost(
         }
     });
 
-app.MapGet("/order/{orderNumber}", (string orderNumber) =>
-{
-    var encodedOrderNumber = Uri.EscapeDataString(orderNumber);
 
-    return Results.Redirect(
-        $"/order-status.html?order={encodedOrderNumber}"
-    );
-});
+app.MapGet(
+    "/order/{orderNumber}",
+    (string orderNumber) =>
+    {
+        var encodedOrderNumber =
+            Uri.EscapeDataString(
+                orderNumber);
+
+        return Results.Redirect(
+            $"/order-status.html?order={encodedOrderNumber}");
+    });
+
 
 app.Run();
