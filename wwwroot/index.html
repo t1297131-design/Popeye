@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Console Runner</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, sans-serif;
+      background: #101217;
+      color: #edf0f6;
+    }
+
+    body {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 64px 24px;
+    }
+
+    .eyebrow {
+      color: #92a0b8;
+      font-size: 12px;
+      letter-spacing: .15em;
+    }
+
+    h1 {
+      font-size: clamp(28px, 5vw, 42px);
+      margin: 12px 0;
+      letter-spacing: -.04em;
+    }
+
+    p {
+      color: #aab3c5;
+      line-height: 1.6;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin: 28px 0 16px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid #394151;
+      border-radius: 8px;
+      padding: 11px 20px;
+      background: #202630;
+      color: #edf0f6;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    #run {
+      background: #bbf7d0;
+      border-color: #bbf7d0;
+      color: #12351f;
+      font-weight: 650;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: wait;
+    }
+
+    button:focus-visible {
+      outline: 3px solid #86b7ff;
+      outline-offset: 3px;
+    }
+
+    #status {
+      margin-left: auto;
+      color: #aab3c5;
+      font-size: 14px;
+    }
+
+    .terminal {
+      border: 1px solid #303746;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #090c11;
+    }
+
+    .titlebar {
+      padding: 13px 18px;
+      border-bottom: 1px solid #303746;
+      color: #9ca9bd;
+      font: 12px ui-monospace, monospace;
+    }
+
+    pre {
+      margin: 0;
+      min-height: 300px;
+      max-height: 65vh;
+      overflow: auto;
+      padding: 22px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: #c4e9d0;
+      font: 14px/1.7 ui-monospace, monospace;
+    }
+
+    .footnote {
+      font-size: 13px;
+    }
+
+    .order-options {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+
+    .order-options label {
+      display: grid;
+      gap: 8px;
+      flex: 1 1 220px;
+      color: #aab3c5;
+      font-size: 14px;
+    }
+
+    .order-options select {
+      width: 100%;
+      border: 1px solid #394151;
+      border-radius: 8px;
+      padding: 11px 12px;
+      background: #202630;
+      color: #edf0f6;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .order-options select:focus-visible {
+      outline: 3px solid #86b7ff;
+      outline-offset: 3px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="eyebrow">
+  APPLICATION CONSOLE
+</div>
+
+<h1>
+  Console Runner
+</h1>
+
+<p>
+  Run your application and follow its output as it happens.
+</p>
+
+<div class="order-options">
+
+  <label for="order-menu">
+    Menu
+
+    <select id="order-menu" name="orderMenu">
+      <option value="Order Brekkie">Order Brekkie</option>
+      <option value="Order Lunch">Order Lunch</option>
+      <option value="Order Now">Order Now</option>
+    </select>
+  </label>
+
+  <label for="order-item">
+    Item
+
+    <select id="order-item" name="orderItem">
+      <option value="Biscuit">Biscuit</option>
+      <option value="Chicken Cruncher">Chicken Cruncher</option>
+      <option value="Regular Fries">Regular Fries</option>
+    </select>
+  </label>
+
+</div>
+
+<div class="toolbar">
+
+  <button id="run">
+    ▶ Run
+  </button>
+
+  <button id="clear">
+    Clear output
+  </button>
+
+  <span id="status" role="status">
+      Ready
+    </span>
+
+</div>
+
+<div class="terminal">
+
+  <div class="titlebar">
+    console · run
+  </div>
+
+  <pre
+          id="output"
+          role="log"
+          aria-label="Command output"
+  >Ready. Press Run to start.
+</pre>
+
+</div>
+
+<p class="footnote">
+  One command runs at a time. Keep this page open until it finishes.
+</p>
+
+<script>
+
+  const runButton =
+          document.querySelector('#run');
+
+  const clearButton =
+          document.querySelector('#clear');
+
+  const output =
+          document.querySelector('#output');
+
+  const status =
+          document.querySelector('#status');
+
+
+  clearButton.addEventListener('click', () => {
+
+    output.textContent = '';
+
+  });
+
+
+  runButton.addEventListener('click', async () => {
+
+    runButton.disabled = true;
+    clearButton.disabled = true;
+
+    output.textContent = '';
+
+    status.textContent = 'Running…';
+
+
+    const append = text => {
+
+      output.textContent =
+              (output.textContent + text)
+                      .slice(-200000);
+
+      output.scrollTop =
+              output.scrollHeight;
+
+    };
+
+
+    try {
+
+      const menu =
+              document.querySelector('#order-menu').value;
+
+      const food =
+              document.querySelector('#order-item').value;
+
+
+      const response =
+              await fetch('/api/commands/run', {
+
+                method: 'POST',
+
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+                  menu,
+                  food
+                })
+
+              });
+
+
+      if (!response.ok) {
+
+        const message =
+                await response.text();
+
+        throw new Error(message);
+
+      }
+
+
+      if (!response.body) {
+
+        throw new Error(
+                'Streaming response body unavailable.'
+        );
+
+      }
+
+
+      const reader =
+              response.body.getReader();
+
+      const decoder =
+              new TextDecoder();
+
+
+      while (true) {
+
+        const {
+          value,
+          done
+        } = await reader.read();
+
+
+        if (done) {
+          break;
+        }
+
+
+        const text =
+                decoder.decode(
+                        value,
+                        {
+                          stream: true
+                        }
+                );
+
+
+        append(text);
+
+      }
+
+
+      append(
+              decoder.decode()
+      );
+
+
+      const failed =
+              output.textContent.includes(
+                      'ERROR:'
+              );
+
+
+      status.textContent =
+              failed
+                      ? 'Failed'
+                      : 'Finished';
+
+    }
+    catch (error) {
+
+      append(
+              '\nERROR: ' +
+              error.message +
+              '\n'
+      );
+
+      status.textContent =
+              'Failed';
+
+    }
+    finally {
+
+      runButton.disabled =
+              false;
+
+      clearButton.disabled =
+              false;
+
+    }
+
+  });
+
+</script>
+
+</body>
+</html>

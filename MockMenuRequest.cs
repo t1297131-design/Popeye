@@ -1,0 +1,1 @@
+public sealed record MockRunRequest(string Menu, string Food);

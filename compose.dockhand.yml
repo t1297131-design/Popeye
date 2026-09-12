@@ -1,0 +1,15 @@
+# Build and push your image first; set APP_IMAGE in Dockhand's stack environment.
+services:
+  console-web:
+    image: ${APP_IMAGE:?Set APP_IMAGE to your published image, e.g. ghcr.io/yourname/console-web-starter:1.0.0}
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+    volumes:
+      - app-data:/app/data
+
+volumes:
+  app-data:
