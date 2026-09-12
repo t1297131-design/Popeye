@@ -155,11 +155,34 @@ internal static class RegisterFlow
             var choice =  MockRegisterFlow.GetSelection(food);
             var promo = await orderClient.RedeemRewardAsync(choice.rewardID);
             await orderClient.GetPromoDetailsAsync(promo.ExternalId);
-          
-            await orderClient.UpdateBasketAsync(new BasketRequest(
-                "birminghamnews",
-                menu,
-                new[] { new BasketItem(choice.MenuItemID, promo.Code, promo.ExternalId) }));
+            if (choice.Name == "Chicken Cruncher")
+            {
+                await orderClient.UpdateBasketAsync(new BasketRequest(
+                    "birminghamnews",
+                    menu,
+                    new[]
+                    {
+                        new BasketItem(choice.MenuItemID, promo.Code, promo.ExternalId)
+                        {
+                            Sides = new object[]
+                            {
+                                new
+                                {
+                                    externalId = "cfd73826-ea5d-44d9-a3f8-7828cf0a50c2",
+                                    quantity = 1
+                                }
+                            }
+                        }
+                    }));
+            }
+            else
+            {
+                await orderClient.UpdateBasketAsync(new BasketRequest(
+                    "birminghamnews",
+                    menu,
+                    new[] { new BasketItem(choice.MenuItemID, promo.Code, promo.ExternalId) }));
+            }
+           
 // 626b930b-1e1a-49e5-ba26-9e858c6380a4 - hasbrown 25bdf484-b228-4bab-b4af-52eabe9047d9 - fries
             var orderId = await orderClient.ConfirmOrderAsync();
             await orderClient.GetOrderAsync(orderId);
